@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import traceback
 from datetime import datetime, timezone
 from typing import Any
 
@@ -198,7 +199,12 @@ def run_agent(
             try:
                 result = _execute_tool(function_name, arguments)
             except Exception as exc:  # noqa: BLE001
-                result = {"error": str(exc), "tool": function_name}
+                result = {
+                    "error": str(exc),
+                    "tool": function_name,
+                    "arguments": arguments,
+                    "traceback": traceback.format_exc(),
+                }
 
             messages.append(
                 {
@@ -209,7 +215,10 @@ def run_agent(
                 }
             )
 
-    raise RuntimeError("Maximum tool-calling rounds exceeded.")
+    raise RuntimeError(
+        f"Maximum tool-calling rounds exceeded ({max_rounds}). "
+        f"Last message role={messages[-1].get('role')!r}."
+    )
 
 
 def main() -> None:

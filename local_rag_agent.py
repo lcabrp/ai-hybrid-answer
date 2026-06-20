@@ -30,6 +30,16 @@ def build_tools_schema() -> list[dict[str, Any]]:
 
     llama-server exposes an OpenAI-compatible endpoint, so we provide tools
     as `type=function` objects with JSON-schema parameter definitions.
+
+    Schema layout used by both OpenAI and llama.cpp-compatible servers:
+    - `type`: must be `function` for function/tool calls.
+    - `function.name`: the Python-dispatch key used in `_execute_tool`.
+    - `function.description`: guidance to help the model choose a tool.
+    - `function.parameters`: JSON Schema object used by the model to build
+      validated arguments (properties/required/default/min/max, etc.).
+
+    The model emits arguments as a JSON string in `tool_calls[*].function.arguments`.
+    We then parse and execute those arguments locally in Python.
     """
     return [
         {
@@ -37,6 +47,8 @@ def build_tools_schema() -> list[dict[str, Any]]:
             "function": {
                 "name": "web_search",
                 "description": "Search the web for recent information using DuckDuckGo.",
+                # JSON Schema: object with one required property (`query`)
+                # and one optional bounded property (`max_results`).
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -61,6 +73,7 @@ def build_tools_schema() -> list[dict[str, Any]]:
             "function": {
                 "name": "web_fetch",
                 "description": "Fetch and extract readable text from a URL.",
+                # JSON Schema: object with required URL and optional output cap.
                 "parameters": {
                     "type": "object",
                     "properties": {
